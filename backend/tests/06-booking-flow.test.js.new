@@ -1,0 +1,65 @@
+const request = require('supertest');
+const app     = require('./app');
+const User    = require('../src/models/User');
+const BookingRequest = require('../src/models/BookingRequest');
+const { registerUser, approveDriverKYC, ridePayload, auth, testLog, logTestStart, logTestEnd } = require('./helpers');
+
+describe('6. BOOKING FLOW TEST', () => {
+  let passengerToken, driverToken, rideId, bookingId;
+  let passed = 0, failed = 0;
+
+  logTestStart('BOOKING FLOW TEST');
+
+  test('6.1 Setup: Register passenger, driver, and create ride', async () => {
+    try {
+      const p = await registerUser('9111111601', 'PASSENGER', 'Passenger Book');
+      const d = await registerUser('9111111602', 'DRIVER', 'Driver Book');
+      passengerToken = p.token;
+      driverToken = d.token;
+
+      const driver = await User.findOne({ phone: '9111111602' });
+      await approveDriverKYC(driver._id);
+
+      const rideRes = await request(app)
+        .post('/api/rides/publish')
+        .set(auth(driverToken))
+        .send(ridePayload());
+
+      if ((rideRes.status === 200 || rideRes.status === 201) && rideRes.body.ride) {
+        rideId = rideRes.body.ride._id;
+        testLog('Setup Ride', 'PASS', `Ride ID: ${rideId}`);
+        passed++;
+      } else {
+        testLog('Setup Ride', 'FAIL', rideRes.body.message || `Status: ${rideRes.status}`);
+        failed++;
+      }
+    } catch (err) {
+      testLog('Setup Ride', 'FAIL', err.message);
+      failed++;
+    }
+  });
+
+  test('6.2 Passenger creates booking - status PENDING', async () => {
+    try {
+      const res = await request(app)
+        .post('/api/bookings')
+        .set(auth(passengerToken))
+        .send({
+          rideId,
+          passengersCount: 2,
+          paymentMethod: 'CASH',
+          pickup: { name: 'CP', coordinates: [77.2195, 28.6315] },
+          dropoff: { name: 'Cyber City', coordinates: [77.0878, 28.4949] },
+        });
+
+      if ((res.status === 200 || res.status === 201) && res.body.booking) {
+        bookingId = res.body.booking._id;
+        if (res.body.booking.status === 'PENDING') {
+          testLog('Create Booking', 'PASS', `Booking status: ${res.body.booking.status}`);
+          passed++;
+        } else {
+          testLog('Create Booking', 'FAIL', `Status: ${res.body.booking.status}`);
+          failed++;
+        }
+      } else {
+        testLog('Create Booking', 'FAIL', `HTTP ${res.status}`);\n        failed++;\n      }\n    } catch (err) {\n      testLog('Create Booking', 'FAIL', err.message);\n      failed++;\n    }\n  });\n\n  test('6.3 Booking has requestExpiry ~5 minutes', async () => {\n    try {\n      const booking = await BookingRequest.findById(bookingId);\n      \n      if (booking && booking.requestExpiry) {\n        const now = Date.now();\n        const expiryTime = booking.requestExpiry.getTime();\n        const diffMinutes = (expiryTime - now) / (1000 * 60);\n        \n        if (diffMinutes >= 4.5 && diffMinutes <= 5.5) {\n          testLog('Booking Expiry', 'PASS', `Expiry in ~${diffMinutes.toFixed(1)} minutes`);\n          passed++;\n        } else {\n          testLog('Booking Expiry', 'FAIL', `Expiry in ${diffMinutes.toFixed(1)} minutes`);\n          failed++;\n        }\n      } else {\n        testLog('Booking Expiry', 'FAIL', 'No expiry set');\n        failed++;\n      }\n    } catch (err) {\n      testLog('Booking Expiry', 'FAIL', err.message);\n      failed++;\n    }\n  });\n\n  test('6.4 Seat locking works - availableSeats decreases', async () => {\n    try {\n      const Ride = require('../src/models/Ride');\n      const ride = await Ride.findById(rideId);\n      const seatsBeforeBooking = ride.availableSeats;\n      \n      // Create another booking\n      const res2 = await request(app)\n        .post('/api/bookings')\n        .set(auth(passengerToken))\n        .send({\n          rideId,\n          passengersCount: 1,\n          paymentMethod: 'CASH',\n          pickup: { name: 'Test', coordinates: [77.2, 28.63] },\n          dropoff: { name: 'Test2', coordinates: [77.08, 28.49] },\n        });\n\n      if (res2.status === 200 || res2.status === 201) {\n        const rideAfter = await Ride.findById(rideId);\n        const seatsAfterBooking = rideAfter.availableSeats;\n        \n        if (seatsAfterBooking < seatsBeforeBooking || rideAfter.lockedSeats > 0) {\n          testLog('Seat Locking', 'PASS', `Locked seats: ${rideAfter.lockedSeats}`);\n          passed++;\n        } else {\n          testLog('Seat Locking', 'FAIL', 'Seats not locked');\n          failed++;\n        }\n      } else {\n        testLog('Seat Locking', 'FAIL', 'Second booking failed');\n        failed++;\n      }\n    } catch (err) {\n      testLog('Seat Locking', 'FAIL', err.message);\n      failed++;\n    }\n  });\n\n  test('Summary: Booking Flow', () => {\n    logTestEnd('BOOKING FLOW TEST', passed, failed);\n    expect(failed).toBe(0);\n  });\n});

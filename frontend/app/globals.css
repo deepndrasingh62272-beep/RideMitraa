@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* Logo Based Colors */
+  --color-rm-blue: #0b5394;
+  --color-rm-green: #499e2e;
+  --color-rm-orange: #f6b26b;
+  --color-rm-yellow: #f1c232;
+  --color-rm-dark: #1a1a1a;
+}
+
+:root {
+  --background: #f8fafc;
+  --foreground: #1a1a1a;
+  --rm-blue: #0b5394;
+  --rm-green: #499e2e;
+  --rm-orange: #f6b26b;
+  --rm-yellow: #f1c232;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f172a;
+    --foreground: #f8fafc;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism utility */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .glass-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.premium-gradient {
+  background: linear-gradient(135deg, var(--rm-blue) 0%, #1e40af 50%, var(--rm-green) 100%);
+}
+
+.premium-shadow {
+  box-shadow: 0 20px 40px -15px rgba(11, 83, 148, 0.15);
+}
+
+/* Smooth Page Transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hover-lift {
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+  }
+}
+
+/* ─── Toast Notification Styles ──────────────────────────────────────────── */
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toast-slide-out {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+}
+
+.ridemitra-toast {
+  animation: toast-slide-in 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+
+/* Sonner toast overrides */
+[data-sonner-toaster] {
+  z-index: 99999 !important;
+}
+
+[data-sonner-toast] {
+  transition: all 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  border-left: 3px solid #ef4444 !important;
+}
+
+[data-sonner-toast][data-type="success"] {
+  border-left: 3px solid #10b981 !important;
+}
+
+[data-sonner-toast][data-type="warning"] {
+  border-left: 3px solid #f59e0b !important;
+}
+
+[data-sonner-toast][data-type="info"] {
+  border-left: 3px solid #3b82f6 !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #94a3b8 !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #f8fafc !important;
+}
+
+[data-sonner-toast] [data-button] {
+  background: rgba(59, 130, 246, 0.2) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  color: #93c5fd !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 4px 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-sonner-toast] [data-button]:hover {
+  background: rgba(59, 130, 246, 0.3) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* ─── Error Boundary Animation ───────────────────────────────────────────── */
+
+@keyframes error-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes error-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
